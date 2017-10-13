@@ -1,0 +1,16 @@
+name: swift-ring-checker 
+version: 1.0
+summary: Check swift rings
+description: >
+   This package provides swift-ring-checker
+confinement: classic
+grade: stable
+
+apps:
+  swift-ring-checker:
+    command: swift-ring-checker.sh
+
+parts:
+  swift-ring-checker:
+    plugin: dump
+    source: . 
