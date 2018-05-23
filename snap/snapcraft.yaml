@@ -2,7 +2,11 @@ name: swift-ring-checker
 version: 1.0
 summary: Check swift rings
 description: >
-   This package provides swift-ring-checker
+   This package provides swift-ring-checker. Run this tool against
+   a Juju deployed Swift cluster and it will display md5sum of your
+   rings and builders to allow visual analysis of consistency
+   across your cluster. Also runs swift-ring-builder on builders to
+   display config and checks if services are running.
 confinement: classic
 grade: stable
 

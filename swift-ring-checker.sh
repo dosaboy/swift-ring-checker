@@ -1,7 +1,7 @@
 #!/bin/bash -eu
 # Author: Edward Hope-Morley (opentastic@gmail.com)
 # Description: Swift Object Store Ring Checker Tool
-# Copyright (C) 2017 Edward Hope-Morley
+# Copyright (C) 2017-2018 Edward Hope-Morley
 #
 # License:
 #
@@ -35,6 +35,12 @@ usage ()
     echo "SERVER:"
     echo "    account|container|object"
     echo ""
+    echo ""
+    echo "ENV VARS:"
+    echo ""
+    echo "  JUJU_V1 - set this to use with Juju 1.x"
+    echo ""
+    echo ""
 }
 
 (($#)) || { usage; exit 1; }
@@ -45,10 +51,14 @@ for arg in $@; do if [ $arg = "-h" ]; then { usage; exit 1; }; fi; done
 get_units ()
 {
 cat <<- EOF| python - $1
-import json, subprocess, sys
+import json, subprocess, sys, os
 data = subprocess.check_output(['juju', 'status', '--format=json'])
 j = json.loads(data)
-applications = j['applications']
+if os.environ.get('JUJU_V1'):
+    applications = j['services']
+else:
+    applications = j['applications']
+
 proxies = []
 for key in applications:
     charm = applications[key]['charm']
@@ -86,19 +96,19 @@ for p_unit in ${PROXY_UNITS[@]}; do
         # Display the ring md5sum in blue and display proxy service status
         juju ssh $p_unit \
                 "echo -ne '${F_YLW}'; \
-                 sudo find /etc/swift/ -maxdepth 1 -name $ringgz| xargs -l sudo md5sum; \
+                 sudo find /etc/swift/ -maxdepth 1 -name $ringgz| sort| xargs -l sudo md5sum; \
                  echo -ne '${RES}'; \
                  echo -n 'STATUS: '; \
-                 sudo systemctl status -n 0 swift-proxy --no-pager" 2>/dev/null || true
+                 sudo systemctl status -n 0 swift-proxy --no-pager 2>/dev/null || sudo service swift-proxy status || true" 2>/dev/null
     elif [ "$1" = "builders" ]; then
         # Builder dev info
         juju ssh $p_unit \
-                "sudo find /etc/swift/ -maxdepth 1 -name $builder| xargs -l sudo swift-ring-builder; \
+                "sudo find /etc/swift/ -maxdepth 1 -name $builder| sort| xargs -l sudo swift-ring-builder; \
                  echo -ne '${F_YLW}'; \
-                 sudo find /etc/swift/ -maxdepth 1 -name $builder| xargs -l sudo md5sum; \
+                 sudo find /etc/swift/ -maxdepth 1 -name $builder| sort| xargs -l sudo md5sum; \
                  echo -ne '${RES}'; \
                  echo -n 'STATUS: '; \
-                 sudo systemctl status -n 0 swift-proxy --no-pager" 2>/dev/null || true
+                 sudo systemctl status -n 0 swift-proxy --no-pager 2>/dev/null || sudo service swift-proxy status || true" 2>/dev/null
     elif [ "$1" = "hash" ]; then
         # Display proxy hash
         juju ssh $p_unit 'sudo grep swift_hash /etc/swift/swift.conf' 2>/dev/null
@@ -166,7 +176,7 @@ for s_unit in ${STORAGE_UNITS[@]}; do
         echo -e "\n${F_GRN}== $s_unit${RES}"
         echo -ne "${F_YLW}"
         juju ssh $s_unit \
-            "sudo find /etc/swift/ -maxdepth 1 -name $ringgz| xargs -l sudo md5sum" 2>/dev/null
+            "sudo find /etc/swift/ -maxdepth 1 -name $ringgz| sort| xargs -l sudo md5sum" 2>/dev/null
         echo -ne "${RES}"
     fi
 done
