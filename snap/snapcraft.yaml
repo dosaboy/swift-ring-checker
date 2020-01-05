@@ -9,19 +9,14 @@ description: >
    display config and checks if services are running.
 confinement: strict
 grade: devel
+base: core18
 
 apps:
   swift-ring-checker:
     command: swift-ring-checker.sh
-    plugs: [home, network]
-
+    plugs: [home, network, juju-client-observe]
 parts:
-  deps1:
+  swift-ring-checker:
     source: .
-    plugin: python
-    python-version: python2
-  swift-ring-checker-install:
-    source: . 
     plugin: dump
-    stage-packages: [juju, juju-1.25]
-    after: [deps1]
+    stage-packages: [jq, juju]
